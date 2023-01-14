@@ -3,6 +3,9 @@ from svglib.svglib import svg2rlg
 from reportlab.graphics import renderPM
 import sys
 import math
+import turtle
+
+verbose = False
 
 class LSystem:
 
@@ -11,7 +14,12 @@ class LSystem:
         self.segment_len = segment_len
         self.angle = 20.0
         self.init_angle = init_angle
-        self.turtle = SvgTurtle()
+        if (verbose):
+            self.turtle = turtle.Turtle()
+            self.turtle.speed(3)
+            self.turtle.screen.screensize(3000, 3000)
+        else:
+            self.turtle = SvgTurtle()
         self.turtle.left(self.init_angle)
         self.saved_position = []
         self.saved_angle = []
@@ -25,11 +33,18 @@ class LSystem:
             '+': self.terminalRotateCW,
             '-': self.terminalRotateCCW,
             '[': self.terminalPushState,
-            ']': self.terminalPopState
+            ']': self.terminalPopState,
+            'F': self.terminalForward,
+            'b': self.terminalForwardNoPen,
         }
 
     def terminalForward(self):
         self.turtle.forward(self.segment_len)
+
+    def terminalForwardNoPen(self):
+        self.turtle.penup()
+        self.turtle.forward(self.segment_len)
+        self.turtle.pendown()
   
     def terminalRotateCW(self):
         self.turtle.right(self.angle)
@@ -84,8 +99,6 @@ class LSystem:
         for command in self.compiled:
             if command in self.commands.keys():
                 self.commands[command]()
-            else:
-                self.terminalForward()
 
             x_ll_corner, x_ur_corner, y_ll_corner, y_ur_corner = self.update_aabb(
                 x_ll_corner,
@@ -93,14 +106,13 @@ class LSystem:
                 y_ll_corner,
                 y_ur_corner
                 )
-        x_ll_corner = math.floor(x_ll_corner)
-        y_ll_corner = math.floor(y_ll_corner)
-        x_ur_corner = math.ceil(x_ur_corner)
-        y_ur_corner = math.ceil(y_ur_corner)
+        x_ll_corner = math.floor(x_ll_corner) - 10
+        y_ll_corner = math.floor(y_ll_corner) - 10
+        x_ur_corner = math.ceil(x_ur_corner) + 10
+        y_ur_corner = math.ceil(y_ur_corner) + 10
 
         x_center = (x_ur_corner + x_ll_corner) / 2
         y_center = (y_ur_corner + y_ll_corner) / 2
-
         self.turtle = SvgTurtle(width = x_ur_corner - x_ll_corner, height = y_ur_corner - y_ll_corner)
         self.turtle.left(self.init_angle)
         self.turtle.penup()
@@ -110,12 +122,11 @@ class LSystem:
 
     def run(self):
         print("start running...")
-        self.prerun()
+        if not verbose:
+            self.prerun()
         for command in self.compiled:
             if command in self.commands.keys():
                 self.commands[command]()
-            else:
-                self.terminalForward()
         
 
     def update_aabb(self, x0, x1, y0, y1, x = None, y = None):
@@ -148,20 +159,22 @@ class ProductionRule:
         self.commands = rule_str[0]
         return self.commands
         
-def main(input_str, iterations, init_angle):
+def main(input_str, iterations, init_angle = 0.0, verbose_param = ""):
+    global verbose 
+    verbose = verbose_param != ""
     file = open(input_str, "r")
     lines = file.readlines()
     lines = [line.strip() for line in lines]
     file.close()
     lsyst = LSystem(int(iterations), 10, float(init_angle)).parse_str(lines).compile()
     lsyst.run()
+    if not verbose:
+        name_svg = input_str.split(".")[0] +iterations+ ".svg"
+        name_png = input_str.split(".")[0] +iterations+ ".png"
 
-    name_svg = input_str.split(".")[0] +iterations+ ".svg"
-    name_png = input_str.split(".")[0] +iterations+ ".png"
-
-    lsyst.turtle.save_as(name_svg)
-    drawing = svg2rlg(name_svg)
-    renderPM.drawToFile(drawing, name_png, fmt="PNG")
+        lsyst.turtle.save_as(name_svg)
+        drawing = svg2rlg(name_svg)
+        renderPM.drawToFile(drawing, name_png, fmt="PNG")
 
 
 if __name__ == '__main__':
