@@ -6,11 +6,13 @@ import math
 
 class LSystem:
 
-    def __init__(self, iterations:int, segment_len:int):
+    def __init__(self, iterations:int, segment_len:int, init_angle = 0.0):
         self.iterations = iterations
         self.segment_len = segment_len
         self.angle = 20.0
+        self.init_angle = init_angle
         self.turtle = SvgTurtle()
+        self.turtle.left(self.init_angle)
         self.saved_position = []
         self.saved_angle = []
 
@@ -36,12 +38,12 @@ class LSystem:
         self.turtle.left(self.angle)
     
     def terminalPushState(self):
-        self.position.append(self.turtle.position())
+        self.saved_position.append(self.turtle.position())
         self.saved_angle.append(self.turtle.heading())
     
     def terminalPopState(self):
         self.turtle.penup()
-        self.turtle.setposition(self.position.pop())
+        self.turtle.setposition(self.saved_position.pop())
         self.turtle.setheading(self.saved_angle.pop())
         self.turtle.pendown()
 
@@ -59,8 +61,7 @@ class LSystem:
         for i in range(self.iterations):
             print(f"compiling iteration {i} of {self.iterations}")
             self.compiled = self.compile_iteration(self.compiled)
-            print(f"finished compiling iteration {i} of {self.iterations}")
-        print("finished compiling {self.iterations} iterations")
+            print(f"finished compiling iteration {i} of {self.iterations} (length = {len(self.compiled)})")
         return self
 
     def compile_iteration(self, input):
@@ -70,6 +71,8 @@ class LSystem:
                 output += self.rules[letter]
             else:
                 output += letter
+                if letter not in self.commands.keys():
+                    print(f"WARNING: unknown letter {letter}")
         return output
 
     def prerun(self):
@@ -99,6 +102,7 @@ class LSystem:
         y_center = (y_ur_corner + y_ll_corner) / 2
 
         self.turtle = SvgTurtle(width = x_ur_corner - x_ll_corner, height = y_ur_corner - y_ll_corner)
+        self.turtle.left(self.init_angle)
         self.turtle.penup()
         self.turtle.setposition(-x_center, -y_center)
         self.turtle.pendown()
@@ -144,16 +148,16 @@ class ProductionRule:
         self.commands = rule_str[0]
         return self.commands
         
-def main(input_str, iterations):
+def main(input_str, iterations, init_angle):
     file = open(input_str, "r")
     lines = file.readlines()
     lines = [line.strip() for line in lines]
     file.close()
-    lsyst = LSystem(int(iterations), 10).parse_str(lines).compile()
+    lsyst = LSystem(int(iterations), 10, float(init_angle)).parse_str(lines).compile()
     lsyst.run()
 
-    name_svg = input_str.split(".")[0] + ".svg"
-    name_png = input_str.split(".")[0] + ".png"
+    name_svg = input_str.split(".")[0] +iterations+ ".svg"
+    name_png = input_str.split(".")[0] +iterations+ ".png"
 
     lsyst.turtle.save_as(name_svg)
     drawing = svg2rlg(name_svg)
