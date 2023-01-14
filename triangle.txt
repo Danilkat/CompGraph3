@@ -1,0 +1,4 @@
+S = FXF--FF--FF
+F = FF
+X = --FXF++FXF++FXF--
+60

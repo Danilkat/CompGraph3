@@ -1,0 +1,5 @@
+S = FX
+F = F
+X = X+YF+
+Y = -FX-Y
+90
